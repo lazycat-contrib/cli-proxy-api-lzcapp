@@ -1,0 +1,43 @@
+params:
+  - id: api_key
+    type: secret
+    name: Client API Key
+    description: Alphanumeric API key required from OpenAI-compatible API clients
+    default_value: "$random(len=32)"
+    optional: false
+
+  - id: management_key
+    type: secret
+    name: Management Key
+    description: Alphanumeric key used by the remote management API and control panel
+    default_value: "$random(len=32)"
+    optional: false
+
+  - id: timezone
+    type: string
+    name: Time Zone
+    description: IANA time zone such as Asia/Shanghai, Etc/UTC, Europe/London, or America/New_York
+    default_value: Asia/Shanghai
+    optional: false
+
+locales:
+  zh:
+    api_key:
+      name: 客户端 API 密钥
+      description: OpenAI 兼容客户端调用 API 时使用的字母数字密钥
+    management_key:
+      name: 管理密钥
+      description: 远程管理 API 和控制面板使用的字母数字密钥
+    timezone:
+      name: 时区
+      description: IANA 时区，例如 Asia/Shanghai、Etc/UTC、Europe/London 或 America/New_York
+  en:
+    api_key:
+      name: Client API Key
+      description: Alphanumeric key required from OpenAI-compatible API clients
+    management_key:
+      name: Management Key
+      description: Alphanumeric key used by the management API and control panel
+    timezone:
+      name: Time Zone
+      description: IANA time zone such as Asia/Shanghai, Etc/UTC, Europe/London, or America/New_York

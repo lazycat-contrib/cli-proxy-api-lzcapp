@@ -1,0 +1,84 @@
+application:
+  subdomain: cli-proxy-api
+  multi_instance: false
+  upstreams:
+    - location: /
+      backend: http://cli-proxy-api:8317/
+      fix_websocket_header: true
+  public_path:
+    - /
+  ingress:
+    - protocol: tcp
+      publish_port: 8085
+      service: cli-proxy-api
+      port: 8085
+    - protocol: tcp
+      publish_port: 1455
+      service: cli-proxy-api
+      port: 1455
+    - protocol: tcp
+      publish_port: 54545
+      service: cli-proxy-api
+      port: 54545
+    - protocol: tcp
+      publish_port: 51121
+      service: cli-proxy-api
+      port: 51121
+    - protocol: tcp
+      publish_port: 11451
+      service: cli-proxy-api
+      port: 11451
+  injects:
+    - id: management-key-autofill
+      on: browser
+      when:
+        - /management.html
+      do:
+        - src: builtin://simple-inject-password
+          params:
+            password: "{{ .U.management_key }}"
+            requireUser: false
+            allowPasswordOnly: true
+            autoSubmit: false
+    - id: open-save-chooser
+      on: browser
+      when:
+        - /*
+      do:
+        - src: file:///lzcapp/pkg/content/lazycat-injects/lzc-file-chooser-inject.js
+
+services:
+  cli-proxy-api:
+    # upstream: docker.io/eceasy/cli-proxy-api:v7.2.149
+    image: docker.1ms.run/eceasy/cli-proxy-api:v7.2.149
+    environment:
+      - DEPLOY=docker
+      - API_KEY_B64={{ .U.api_key | b64enc }}
+      - MANAGEMENT_KEY_B64={{ .U.management_key | b64enc }}
+      - "TZ={{ .U.timezone }}"
+    setup_script: |
+      set -eu
+      config_dir=/lzcapp/var/cli-proxy-api/config
+      config_file="$config_dir/config.yaml"
+      mkdir -p "$config_dir"
+      if [ ! -s "$config_file" ]; then
+        api_key=$(printf '%s' "$API_KEY_B64" | base64 -d)
+        management_key=$(printf '%s' "$MANAGEMENT_KEY_B64" | base64 -d)
+        escaped_api_key=$(printf '%s' "$api_key" | sed 's/[\\&|\"]/\\&/g')
+        escaped_management_key=$(printf '%s' "$management_key" | sed 's/[\\&|\"]/\\&/g')
+        temporary_file="$config_dir/config.yaml.tmp.$$"
+        sed \
+          -e "s|__API_KEY__|$escaped_api_key|g" \
+          -e "s|__MANAGEMENT_KEY__|$escaped_management_key|g" \
+          /lzcapp/pkg/content/runtime/config.yaml > "$temporary_file"
+        chmod 600 "$temporary_file"
+        mv -f "$temporary_file" "$config_file"
+      fi
+      ln -sfn "$config_file" /CLIProxyAPI/config.yaml
+    binds:
+      - /lzcapp/var/cli-proxy-api/auths:/root/.cli-proxy-api
+      - /lzcapp/var/cli-proxy-api/logs:/CLIProxyAPI/logs
+      - /lzcapp/var/cli-proxy-api/plugins:/CLIProxyAPI/plugins
+
+usage: |
+  Use the generated client API key for requests to the application URL. Open /management.html and use the generated management key to configure OAuth providers and credentials. OAuth callback ports 8085, 1455, 54545, 51121, and 11451 are exposed through TCP ingress.
