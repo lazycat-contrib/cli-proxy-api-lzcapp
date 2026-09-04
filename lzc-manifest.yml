@@ -61,19 +61,35 @@ services:
       config_dir=/lzcapp/var/cli-proxy-api/config
       config_file="$config_dir/config.yaml"
       mkdir -p "$config_dir"
+      api_key=$(printf '%s' "$API_KEY_B64" | base64 -d)
+      management_key=$(printf '%s' "$MANAGEMENT_KEY_B64" | base64 -d)
       if [ ! -s "$config_file" ]; then
-        api_key=$(printf '%s' "$API_KEY_B64" | base64 -d)
-        management_key=$(printf '%s' "$MANAGEMENT_KEY_B64" | base64 -d)
-        escaped_api_key=$(printf '%s' "$api_key" | sed 's/[\\&|\"]/\\&/g')
-        escaped_management_key=$(printf '%s' "$management_key" | sed 's/[\\&|\"]/\\&/g')
-        temporary_file="$config_dir/config.yaml.tmp.$$"
-        sed \
-          -e "s|__API_KEY__|$escaped_api_key|g" \
-          -e "s|__MANAGEMENT_KEY__|$escaped_management_key|g" \
-          /lzcapp/pkg/content/runtime/config.yaml > "$temporary_file"
-        chmod 600 "$temporary_file"
-        mv -f "$temporary_file" "$config_file"
+        cp /lzcapp/pkg/content/runtime/config.yaml "$config_file"
       fi
+      temporary_file="$config_dir/config.yaml.tmp.$$"
+      awk -v api_key="$api_key" -v management_key="$management_key" '
+        /^  secret-key:/ {
+          print "  secret-key: \"" management_key "\""
+          next
+        }
+        /^api-keys:/ {
+          in_api_keys = 1
+          replaced_api_key = 0
+          print
+          next
+        }
+        in_api_keys && /^  - / && !replaced_api_key {
+          print "  - \"" api_key "\""
+          replaced_api_key = 1
+          next
+        }
+        in_api_keys && /^[^ ]/ {
+          in_api_keys = 0
+        }
+        { print }
+      ' "$config_file" > "$temporary_file"
+      chmod 600 "$temporary_file"
+      mv -f "$temporary_file" "$config_file"
       ln -sfn "$config_file" /CLIProxyAPI/config.yaml
     binds:
       - /lzcapp/var/cli-proxy-api/auths:/root/.cli-proxy-api
