@@ -48,8 +48,8 @@ application:
         - src: file:///lzcapp/pkg/content/lazycat-injects/lzc-file-chooser-inject.js
 services:
   cli-proxy-api:
-    # upstream: docker.io/eceasy/cli-proxy-api:v7.2.155
-    image: docker.1ms.run/eceasy/cli-proxy-api:v7.2.155
+    # upstream: docker.io/eceasy/cli-proxy-api:v7.2.156
+    image: docker.1ms.run/eceasy/cli-proxy-api:v7.2.156
     environment:
       - DEPLOY=docker
       - API_KEY_B64={{ .U.api_key | b64enc }}
